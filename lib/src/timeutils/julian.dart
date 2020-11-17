@@ -56,12 +56,8 @@ final DJDToJD = 2415020;
 final DJDToMJD = 2400000.5;
 
 class CalendarException implements Exception {
-  String message;
-
-  CalendarException(String message) {
-    this.message = message;
-  }
-
+  final String message;
+  const CalendarException(this.message);
   String errMsg() => message;
 }
 
