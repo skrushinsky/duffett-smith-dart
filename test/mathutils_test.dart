@@ -118,4 +118,20 @@ void main() {
     test('Negative minutes',
         () => expect(ddd(0, -35), closeTo(-0.5833333, DELTA)));
   });
+
+  group('Arcs', () {
+    const cases = [
+      {'a': 10.0, 'b': 270.0, 'x': 100.0},
+      {'a': 350.0, 'b': 20.0, 'x': 30.0},
+      {'a': 10.0, 'b': 20.0, 'x': 10.0}
+    ];
+
+    for (var c in cases) {
+      final a = c['a'];
+      final b = c['b'];
+      test('a = ${a}, b = ${b}', () {
+        expect(shortestArc(a, b), closeTo(c['x'], DELTA));
+      });
+    }
+  });
 }

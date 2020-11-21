@@ -53,3 +53,9 @@ double ddd(int d, int m, [double s = 0]) {
   final sgn = d < 0 || m < 0 || s < 0 ? -1 : 1;
   return (d.abs() + (m.abs() + s.abs() / 60.0) / 60.0) * sgn;
 }
+
+/// Calculate shortest arc in dergees between [a] and [b].
+double shortestArc(double a, double b) {
+  final x = (a - b).abs();
+  return x > 180 ? 360 - x : x;
+}
