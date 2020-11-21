@@ -10,14 +10,14 @@ import 'package:duffett_smith/src/ephemeris/sun.dart' as sun;
 /// The 'standard' altitude in arc-degrees, i.e. geometric altitude of the
 /// center of the body at the time of apparent rising and setting,
 /// for stars and planets
-const altStd = 0.5667;
+const ALT_STD = 0.5667;
 
 /// Standard altitude of the Sun
-const altSun = 0.8333;
+const ALT_SUN = 0.8333;
 
 /// Mean altitude for Moon; for better accuracy use:
 /// `0.7275 * parallax - 0.34`
-const altMoon = 0.125;
+const ALT_MOO = 0.125;
 
 /// Base class for exceptions in this module.
 abstract class RiseSetException implements Exception {
@@ -63,12 +63,12 @@ class RSEvent {
 ///
 /// [alpha] is right ascension in hours, [delta] is declination in arc-degrees,
 /// [phi] is geographical latiude in arc-degrees. Optional [displacment] is
-/// vertical displacement in arc-degrees, [altStd] by default.
+/// vertical displacement in arc-degrees, [ALT_STD] by default.
 ///
 /// Caller receives results via [callback] function, which is called with
 /// local sidereal times (hours) and azimuths (in arc-degrees) of rise and set.
 void riseset(double alpha, double delta, double phi,
-    {double displacement = altStd,
+    {double displacement = ALT_STD,
     Function(double, double, double, double) callback}) {
   final de = radians(delta);
   final cy = cos(de);
@@ -129,7 +129,7 @@ class RiseSetSun {
   RiseSetSun(this._djd, this._phi, this._lng);
 
   void _riseset(double dj, callback) {
-    final t = dj / daysPerCentury;
+    final t = dj / DAYS_PER_CENT;
     nutation(t, (dpsi, deps) {
       sun.trueGeocentric(t, callback: (lsn, rsn) {
         // correct for nutation and aberration
@@ -138,7 +138,7 @@ class RiseSetSun {
         final eps = obliquity(dj, deps: deps);
         ecl2equ(lambda, 0.0, eps, (alpha, delta) {
           riseset(alpha / 15, delta, _phi,
-              displacement: altSun, callback: callback);
+              displacement: ALT_SUN, callback: callback);
         });
       });
     });

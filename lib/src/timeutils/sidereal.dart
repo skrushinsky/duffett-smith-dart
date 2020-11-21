@@ -28,9 +28,9 @@
 import '../mathutils.dart';
 import 'julian.dart';
 
-const solarToSidereal = 1.002737909350795;
-const sidRate = 0.9972695677;
-const ambigDelta = 6.552E-2;
+const SOLAR_TO_SID = 1.002737909350795;
+const SID_RATE = 0.9972695677;
+const _AMBIG_DELTA = 6.552E-2;
 
 double _tnaught(double djd) {
   var ye;
@@ -50,7 +50,7 @@ double djdToSidereal(double djd, {double lng = 0.0}) {
   final djm = djdMidnight(djd);
   final utc = (djd - djm) * 24;
   final t0 = _tnaught(djm);
-  final gst = (1.0 / sidRate) * utc + t0;
+  final gst = (1.0 / SID_RATE) * utc + t0;
   final lst = gst - lng / 15;
   return toRange(lst, 24.0);
 }
@@ -69,6 +69,6 @@ void siderealToUTC(
   final djm = djdMidnight(djd);
   final t0 = toRange(_tnaught(djm), 24.0);
   final gst = lst + lng / 15;
-  final utc = toRange(gst - t0, 24.0) * sidRate;
-  callback(utc, utc < ambigDelta);
+  final utc = toRange(gst - t0, 24.0) * SID_RATE;
+  callback(utc, utc < _AMBIG_DELTA);
 }

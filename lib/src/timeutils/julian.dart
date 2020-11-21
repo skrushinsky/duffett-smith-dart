@@ -9,7 +9,7 @@
 /// the epoch **1900 January 0.5 (1989 December 31.5)** as the starting point.
 /// See _"Astronomy With Your Personal Computer"_, p.14. This kind of Julian
 /// date is referred as 'DJD'. To convert DJD to JD and vise versa, use
-/// [DJDToJD] constant: `jd = djd + DJDToJD`
+/// [DJD_TO_JD] constant: `jd = djd + DJD_TO_JD`
 
 // The module contains some other usefull calendar-related functions, such as
 /// [weekDay], [dayOfYear], [isLeapYear].
@@ -52,9 +52,9 @@ import '../mathutils.dart';
 /// Year when Gregorian calendar was introduced
 const gregorianYear = 1582;
 
-const DJDToJD = 2415020;
-const DJDToMJD = 2400000.5;
-const daysPerCentury = 36525;
+const DJD_TO_JD = 2415020;
+const DJD_TO_MJD = 2400000.5;
+const DAYS_PER_CENT = 36525;
 
 class CalendarException implements Exception {
   final String message;
@@ -155,7 +155,7 @@ double djdMidnight(double djd) {
 /// `0` for Sunday, `1` for Monday and so on.
 int weekDay(double djd) {
   final d0 = djdMidnight(djd);
-  final j0 = d0 + DJDToJD;
+  final j0 = d0 + DJD_TO_JD;
   return ((j0 + 1.5) % 7).truncate();
 }
 

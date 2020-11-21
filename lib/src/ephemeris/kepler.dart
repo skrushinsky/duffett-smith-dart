@@ -3,7 +3,7 @@
 import 'dart:math';
 
 /// @nodoc
-const dlaDelta = 1e-7; // precision for Kepler equation
+const _DLA_DELTA = 1e-7; // precision for Kepler equation
 
 /// Solve Kepler equation to calculate [ea], the eccentric anomaly,
 /// in elliptical motion given [s] `(< 1)`, the eccentricity,
@@ -12,7 +12,7 @@ const dlaDelta = 1e-7; // precision for Kepler equation
 double kepler(double s, double m, [double ea]) {
   ea ??= m;
   var dla = ea - (s * sin(ea)) - m;
-  if (dla.abs() < dlaDelta) {
+  if (dla.abs() < _DLA_DELTA) {
     return ea;
   }
   dla = dla / (1 - (s * cos(ea)));

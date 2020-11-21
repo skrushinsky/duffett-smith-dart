@@ -18,7 +18,7 @@
 import '../mathutils.dart';
 import 'julian.dart';
 
-const DeltaTHistorical = [
+const _HISTORICAL = [
   // From J.Meeus, Astronomical Algorithms, 2 edition
   [1620, 121.0],
   [1622, 112.0],
@@ -227,12 +227,12 @@ double interpolateHistorical(int ye, double djd) {
   // 1620 - 20xx
   final needle =
       ye % 2 == 0 ? ye : ye - 1; // there are only even years in the table
-  final idx = DeltaTHistorical.indexWhere((o) => o[0] == needle);
+  final idx = _HISTORICAL.indexWhere((o) => o[0] == needle);
   if (idx == -1) {
     throw StateError('Historical Delta-T value for year ${ye} not found');
   }
-  final dh0 = DeltaTHistorical[idx];
-  final dh1 = DeltaTHistorical[idx + 1];
+  final dh0 = _HISTORICAL[idx];
+  final dh1 = _HISTORICAL[idx + 1];
   final j0 = julDay(dh0[0], 1, 1.0);
   final j1 = julDay(dh1[0], 1, 1.0);
   // simple linear interpolation between two values
@@ -265,9 +265,9 @@ double deltaT(double djd) {
   calDay(djd, (ye, mo, da) {
     if (ye >= ydSince && ye <= ydUntil) {
       dt = interpolateHistorical(ye, djd);
-    } else if (ye == DeltaTHistorical.last[0]) {
+    } else if (ye == _HISTORICAL.last[0]) {
       // Last value in the table
-      dt = DeltaTHistorical.last[0];
+      dt = _HISTORICAL.last[0];
     } else {
       dt = predict(ye);
     }

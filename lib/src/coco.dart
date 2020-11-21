@@ -6,10 +6,10 @@ import 'package:vector_math/vector_math.dart';
 import '../mathutils.dart';
 
 /// @nodoc
-const equToEcl = 1;
+const EQU_TO_ECL = 1;
 
 /// @nodoc
-const eclToEqu = -1;
+const ECL_TO_EQU = -1;
 
 /// Converts between longitude/right ascension and latitude/declination.
 /// The last argument is flag specifying the conversion direction:
@@ -80,7 +80,7 @@ void _convertEquHor(
 /// All angular values are in *arc-degrees*.
 void equ2ecl(
     double alpha, double delta, double eps, Function(double, double) callback) {
-  _convertEquEcl(alpha, delta, eps, equToEcl, callback);
+  _convertEquEcl(alpha, delta, eps, EQU_TO_ECL, callback);
 }
 
 /// Convert ecliptical to equatorial coordinates.
@@ -94,7 +94,7 @@ void equ2ecl(
 /// All angular values are in *arc-degrees*.
 void ecl2equ(
     double lambda, double beta, double eps, Function(double, double) callback) {
-  _convertEquEcl(lambda, beta, eps, eclToEqu, callback);
+  _convertEquEcl(lambda, beta, eps, ECL_TO_EQU, callback);
 }
 
 /// Convert equatorial to horizontal coordinates.
