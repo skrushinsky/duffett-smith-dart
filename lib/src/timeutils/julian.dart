@@ -50,10 +50,11 @@
 import '../mathutils.dart';
 
 /// Year when Gregorian calendar was introduced
-final gregorianYear = 1582;
+const gregorianYear = 1582;
 
-final DJDToJD = 2415020;
-final DJDToMJD = 2400000.5;
+const DJDToJD = 2415020;
+const DJDToMJD = 2400000.5;
+const daysPerCentury = 36525;
 
 class CalendarException implements Exception {
   final String message;

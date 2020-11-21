@@ -24,4 +24,40 @@ void main() {
           throwsA(TypeMatcher<NeverRisesException>()));
     });
   });
+
+  group('Sun', () {
+    final cases = [
+      {
+        'lng': 0.0,
+        'lat': 52.0,
+        'djd': 30954.5,
+        'gmtr': 6.016141666666667,
+        'gmts': 17.619680555555554,
+        'azr': 94.24374722222223,
+        'azs': 265.4521138888889,
+      },
+      {
+        'lng': -15.0,
+        'lat': -45.0,
+        'djd': 30743.5,
+        'gmtr': 4.689016666666666,
+        'gmts': 17.686975,
+        'azr': 99.87367777777777,
+        'azs': 260.4207166666667,
+      }
+    ];
+
+    for (var c in cases) {
+      final djd = c['djd'];
+      final rs = RiseSetSun(djd, c['lat'], c['lng']);
+      test('Rise on ${djd}', () {
+        expect(rs.sunRise.utc, closeTo(c['gmtr'], 1e-3));
+        expect(rs.sunRise.azimuth, closeTo(c['azr'], 1e-2));
+      });
+      test('Set on ${djd}', () {
+        expect(rs.sunSet.utc, closeTo(c['gmts'], 1e-3));
+        expect(rs.sunSet.azimuth, closeTo(c['azs'], 1e-2));
+      });
+    }
+  });
 }

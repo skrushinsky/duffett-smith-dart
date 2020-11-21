@@ -3,6 +3,8 @@ import 'package:vector_math/vector_math.dart';
 import '../mathutils.dart';
 import './kepler.dart';
 
+const ABERRATION = 5.69e-3; // aberration in degrees
+
 /// Mean longitude of the Sun, arc-degrees
 double meanLongitude(double t) =>
     reduceDeg(2.7969668e2 + 3.025e-4 * t * t + frac360(1.000021359e2 * t));
@@ -48,4 +50,16 @@ void trueGeocentric(double t, {double ms, Function(double, double) callback}) {
   final lsn = reduceDeg(degrees(nu) + ls - ms + dl);
   final rsn = 1.0000002 * (1 - s * cos(ea)) + dr;
   callback(lsn, rsn);
+}
+
+double trueToApparent(double lambda, double deltaPsi,
+    {double delta, bool ignoreLightTravel = true}) {
+  lambda += deltaPsi; // nutation
+  lambda -= ABERRATION; // aberration
+
+  if (!ignoreLightTravel) {
+    final dt = 1.365 * delta; // seconds
+    lambda -= dt * 15 / 3600; // convert to degrees and substract
+  }
+  return lambda;
 }

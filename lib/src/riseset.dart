@@ -1,14 +1,19 @@
 import 'dart:math';
+import 'package:duffett_smith/coco.dart';
+import 'package:duffett_smith/ephemeris.dart';
 import 'package:duffett_smith/mathutils.dart';
+import 'package:duffett_smith/src/timeutils/julian.dart';
+import 'package:duffett_smith/src/timeutils/sidereal.dart';
 import 'package:vector_math/vector_math.dart';
+import 'package:duffett_smith/src/ephemeris/sun.dart' as sun;
 
 /// The 'standard' altitude in arc-degrees, i.e. geometric altitude of the
 /// center of the body at the time of apparent rising and setting,
 /// for stars and planets
-const altStd = -0.5667;
+const altStd = 0.5667;
 
 /// Standard altitude of the Sun
-const altSun = -0.8333;
+const altSun = 0.8333;
 
 /// Mean altitude for Moon; for better accuracy use:
 /// `0.7275 * parallax - 0.34`
@@ -34,6 +39,23 @@ class CircumpolarException extends RiseSetException {
 /// The celectial body is always below the horizon, it never rises.
 class NeverRisesException extends RiseSetException {
   const NeverRisesException() : super('Never rises');
+}
+
+/// Types of event
+enum EventType { Rise, Set }
+
+/// Event description
+class RSEvent {
+  final double _utc;
+  final double _azimuth;
+
+  const RSEvent(this._utc, this._azimuth);
+
+  /// UTC of the event
+  double get utc => _utc;
+
+  /// Azimuth of the body, arc-degrees
+  double get azimuth => _azimuth;
 }
 
 /// Circumstances of **rising** and **setting** of a celestial object
@@ -92,4 +114,84 @@ void riseset(double alpha, double delta, double phi,
   final azs = reduceDeg(360 - azr);
 
   callback(lstr, lsts, azr, azs);
+}
+
+/// Calculates rise and set of the Sun.
+class RiseSetSun {
+  final _djd;
+  final _phi;
+  final _lng;
+
+  RSEvent _sunRise;
+  RSEvent _sunSet;
+
+  /// Constructor.
+  RiseSetSun(this._djd, this._phi, this._lng);
+
+  void _riseset(double dj, callback) {
+    final t = dj / daysPerCentury;
+    nutation(t, (dpsi, deps) {
+      sun.trueGeocentric(t, callback: (lsn, rsn) {
+        // correct for nutation and aberration
+        final lambda = sun.trueToApparent(lsn, dpsi, ignoreLightTravel: true);
+        // obliquity
+        final eps = obliquity(dj, deps: deps);
+        ecl2equ(lambda, 0.0, eps, (alpha, delta) {
+          riseset(alpha / 15, delta, _phi,
+              displacement: altSun, callback: callback);
+        });
+      });
+    });
+  }
+
+  void _gmt(double dj, Function(RSEvent, RSEvent) callback) {
+    _riseset(dj, (lstr, lsts, azr, azs) {
+      var r, s;
+      siderealToUTC(
+          lst: lstr,
+          djd: dj,
+          lng: _lng,
+          callback: (utc, _) {
+            r = RSEvent(utc, azr);
+          });
+      siderealToUTC(
+          lst: lsts,
+          djd: dj,
+          lng: _lng,
+          callback: (utc, _) {
+            s = RSEvent(utc, azs);
+          });
+      callback(r, s);
+    });
+  }
+
+  void _calculate() {
+    final dj0 = djdMidnight(_djd);
+    // rise/set for the noon
+    _gmt(dj0 + 0.5, (r0, s0) {
+      // set DJD to first approx. of time of sunrise/sunset
+      _gmt(dj0 + r0.utc / 24, (r1, s1) {
+        _sunRise = r1;
+        _gmt(dj0 + s0.utc / 24, (r2, s2) {
+          _sunSet = s2;
+        });
+      });
+    });
+  }
+
+  /// Sunrise circumstances
+  RSEvent get sunRise {
+    if (_sunRise == null) {
+      _calculate();
+    }
+    return _sunRise;
+  }
+
+  /// Sunset circumstances
+  RSEvent get sunSet {
+    if (_sunSet == null) {
+      _calculate();
+    }
+    return _sunSet;
+  }
 }
