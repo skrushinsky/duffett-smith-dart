@@ -2,8 +2,8 @@ import 'dart:math';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'mathutils.dart';
-import 'ephemeris/sun.dart' as sun;
-import 'ephemeris/moon.dart' as moon;
+import 'sun.dart' as sun;
+import 'moon.dart' as moon;
 import 'ephemeris/planets.dart';
 import 'ephemeris/nutation.dart';
 import 'ephemeris/obliquity.dart';

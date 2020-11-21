@@ -5,7 +5,7 @@ import 'package:duffett_smith/mathutils.dart';
 import 'package:duffett_smith/src/timeutils/julian.dart';
 import 'package:duffett_smith/src/timeutils/sidereal.dart';
 import 'package:vector_math/vector_math.dart';
-import 'package:duffett_smith/src/ephemeris/sun.dart' as sun;
+import 'package:duffett_smith/src/sun.dart' as sun;
 
 /// The 'standard' altitude in arc-degrees, i.e. geometric altitude of the
 /// center of the body at the time of apparent rising and setting,
@@ -133,7 +133,8 @@ class RiseSetSun {
     nutation(t, (dpsi, deps) {
       sun.trueGeocentric(t, callback: (lsn, rsn) {
         // correct for nutation and aberration
-        final lambda = sun.trueToApparent(lsn, dpsi, ignoreLightTravel: true);
+        final lambda =
+            sun.trueToApparent(lsn, dpsi, ignoreLightTravel: false, delta: rsn);
         // obliquity
         final eps = obliquity(dj, deps: deps);
         ecl2equ(lambda, 0.0, eps, (alpha, delta) {

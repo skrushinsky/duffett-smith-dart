@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:duffett_smith/lunations.dart';
+import 'package:duffett_smith/moon.dart';
 
 const DELTA = 1e-2;
 

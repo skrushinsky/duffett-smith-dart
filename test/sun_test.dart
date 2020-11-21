@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:duffett_smith/ephemeris.dart';
+import 'package:duffett_smith/sun.dart';
 
 const DELTA = 1E-4; // result precision
 

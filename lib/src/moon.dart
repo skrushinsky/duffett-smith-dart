@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
-import '../mathutils.dart';
+import 'mathutils.dart';
 
 /// @nodoc
 const _M = [

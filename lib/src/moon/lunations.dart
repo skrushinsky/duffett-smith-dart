@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
 
-import 'mathutils.dart';
-import 'timeutils/julian.dart';
+import '../mathutils.dart';
+import '../timeutils/julian.dart';
 
 /// Quarter types
 enum QuarterType { NewMoon, FirstQuarter, FullMoon, LastQuarter }
