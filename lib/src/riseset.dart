@@ -6,6 +6,7 @@ import 'package:duffett_smith/src/timeutils/julian.dart';
 import 'package:duffett_smith/src/timeutils/sidereal.dart';
 import 'package:vector_math/vector_math.dart';
 import 'package:duffett_smith/src/sun.dart' as sun;
+import 'package:duffett_smith/src/moon.dart' as moon;
 
 /// The 'standard' altitude in arc-degrees, i.e. geometric altitude of the
 /// center of the body at the time of apparent rising and setting,
@@ -18,6 +19,8 @@ const ALT_SUN = 0.8333;
 /// Mean altitude for Moon; for better accuracy use:
 /// `0.7275 * parallax - 0.34`
 const ALT_MOO = 0.125;
+
+const STD_REFRACTION = 34.0 / 60;
 
 /// Base class for exceptions in this module.
 abstract class RiseSetException implements Exception {
@@ -42,7 +45,7 @@ class NeverRisesException extends RiseSetException {
 }
 
 /// Types of event
-enum EventType { Rise, Set }
+enum RSEventType { Rise, Set }
 
 /// Event description
 class RSEvent {
@@ -116,83 +119,137 @@ void riseset(double alpha, double delta, double phi,
   callback(lstr, lsts, azr, azs);
 }
 
-/// Calculates rise and set of the Sun.
-class RiseSetSun {
+/// Calculates rise and set of a fast moving body.
+abstract class RiseSet {
   final _djd;
   final _phi;
   final _lng;
 
-  RSEvent _sunRise;
-  RSEvent _sunSet;
+  RSEvent _riseEvent;
+  RSEvent _setEvent;
 
   /// Constructor.
-  RiseSetSun(this._djd, this._phi, this._lng);
+  RiseSet(this._djd, this._phi, this._lng);
 
-  void _riseset(double dj, callback) {
+  void lstRiseSet(double dj,
+      {Function(double, double, double, double) callback,
+      bool ignoreDisplacement = false}) {
     final t = dj / DAYS_PER_CENT;
     nutation(t, (dpsi, deps) {
-      sun.trueGeocentric(t, callback: (lsn, rsn) {
-        // correct for nutation and aberration
-        final lambda =
-            sun.trueToApparent(lsn, dpsi, ignoreLightTravel: false, delta: rsn);
-        // obliquity
-        final eps = obliquity(dj, deps: deps);
-        ecl2equ(lambda, 0.0, eps, (alpha, delta) {
+      // obliquity
+      final eps = obliquity(dj, deps: deps);
+      _apparentPosition(dj, dpsi, (lambda, beta, delta) {
+        ecl2equ(lambda, beta, eps, (alpha, delta) {
+          final dis = ignoreDisplacement ? 0.0 : _getDisplacement();
           riseset(alpha / 15, delta, _phi,
-              displacement: ALT_SUN, callback: callback);
+              displacement: dis, callback: callback);
         });
       });
     });
   }
 
-  void _gmt(double dj, Function(RSEvent, RSEvent) callback) {
-    _riseset(dj, (lstr, lsts, azr, azs) {
-      var r, s;
-      siderealToUTC(
-          lst: lstr,
-          djd: dj,
-          lng: _lng,
-          callback: (utc, _) {
-            r = RSEvent(utc, azr);
-          });
-      siderealToUTC(
-          lst: lsts,
-          djd: dj,
-          lng: _lng,
-          callback: (utc, _) {
-            s = RSEvent(utc, azs);
-          });
-      callback(r, s);
-    });
+  double _lst2utc(double lst, double dj) {
+    var utc;
+    siderealToUTC(lst: lst, djd: dj, lng: _lng, callback: (ut, _) => utc = ut);
+    return utc;
   }
 
   void _calculate() {
     final dj0 = djdMidnight(_djd);
-    // rise/set for the noon
-    _gmt(dj0 + 0.5, (r0, s0) {
-      // set DJD to first approx. of time of sunrise/sunset
-      _gmt(dj0 + r0.utc / 24, (r1, s1) {
-        _sunRise = r1;
-        _gmt(dj0 + s0.utc / 24, (r2, s2) {
-          _sunSet = s2;
-        });
-      });
+    // rise and set for the noon
+    final djNoon = dj0 + 0.5;
+    lstRiseSet(djNoon, callback: (lstr, lsts, azr, azs) {
+      _riseEvent = RSEvent(_lst2utc(lstr, djNoon), azr);
+      _setEvent = RSEvent(_lst2utc(lsts, djNoon), azs);
+    });
+    _refineResult(dj0);
+  }
+
+  void _apparentPosition(
+      double dj, double dpsi, Function(double, double, double) callback);
+
+  double _getDisplacement();
+
+  void _refineResult(double dj);
+
+  /// Rise circumstances
+  RSEvent get riseEvent {
+    if (_riseEvent == null) {
+      _calculate();
+    }
+    return _riseEvent;
+  }
+
+  /// Set circumstances
+  RSEvent get setEvent {
+    if (_setEvent == null) {
+      _calculate();
+    }
+    return _setEvent;
+  }
+}
+
+/// Rise / Set of the Moon
+class RiseSetMoon extends RiseSet {
+  double _hp; // horizontal parallax
+
+  RiseSetMoon(djd, phi, lng) : super(djd, phi, lng);
+
+  @override
+  void _apparentPosition(
+      double dj, double dpsi, Function(double, double, double) callback) {
+    moon.truePosition(dj, (lambda, beta, delta, hp, dm) {
+      _hp = hp;
+      callback(lambda + dpsi, beta, delta);
     });
   }
 
-  /// Sunrise circumstances
-  RSEvent get sunRise {
-    if (_sunRise == null) {
-      _calculate();
-    }
-    return _sunRise;
+  @override
+  double _getDisplacement() {
+    // angular radius; assume sea-level
+    final th = 2.7249e-1 * sin(radians(_hp));
+    // account for refraction, angular radius and parallax
+    return th + STD_REFRACTION - _hp;
   }
 
-  /// Sunset circumstances
-  RSEvent get sunSet {
-    if (_sunSet == null) {
-      _calculate();
+  @override
+  void _refineResult(double dj) {
+    for (var i = 0; i < 2; i++) {
+      lstRiseSet(dj + _riseEvent.utc / 24, callback: (lstr, lsts, azr, _) {
+        _riseEvent = RSEvent(_lst2utc(lstr, dj), azr);
+        lstRiseSet(dj + _setEvent.utc / 24, callback: (lstr, lsts, _, azs) {
+          _setEvent = RSEvent(_lst2utc(lsts, dj), azs);
+        });
+      });
     }
-    return _sunSet;
+  }
+}
+
+/// Rise / Set of the Sun
+class RiseSetSun extends RiseSet {
+  RiseSetSun(djd, phi, lng) : super(djd, phi, lng);
+
+  @override
+  void _apparentPosition(
+      double dj, double dpsi, Function(double, double, double) callback) {
+    sun.trueGeocentric(dj / DAYS_PER_CENT, callback: (lsn, rsn) {
+      // correct for nutation and aberration
+      final lambda =
+          sun.trueToApparent(lsn, dpsi, ignoreLightTravel: false, delta: rsn);
+      callback(lambda, 0.0, rsn);
+    });
+  }
+
+  @override
+  double _getDisplacement() => ALT_SUN;
+
+  @override
+  void _refineResult(double dj) {
+    lstRiseSet(dj + _riseEvent.utc / 24, callback: (lstr, lsts, azr, _) {
+      _riseEvent = RSEvent(_lst2utc(lstr, dj), azr);
+      lstRiseSet(dj + _setEvent.utc / 24, callback: (lstr, lsts, _, azs) {
+        _setEvent = RSEvent(_lst2utc(lsts, dj), azs);
+      });
+    });
   }
 }

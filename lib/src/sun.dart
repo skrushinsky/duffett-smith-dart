@@ -82,11 +82,10 @@ void apparent(double djd,
   final t = djd / DAYS_PER_CENT;
   trueGeocentric(t, callback: (lsn, rsn) {
     if (dpsi == null) {
-      nutation(t, (dpsi, deps) {
-        final lambda = trueToApparent(lsn, dpsi,
-            ignoreLightTravel: ignoreLightTravel, delta: rsn);
-        callback(lambda, rsn);
-      });
+      nutation(t, (dp, _) => dpsi = dp);
     }
+    final lambda = trueToApparent(lsn, dpsi,
+        ignoreLightTravel: ignoreLightTravel, delta: rsn);
+    callback(lambda, rsn);
   });
 }

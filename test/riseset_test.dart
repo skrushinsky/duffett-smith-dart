@@ -4,7 +4,7 @@ import 'package:duffett_smith/riseset.dart';
 const delta = 1e-4;
 
 void main() {
-  group('Rise / set ', () {
+  group('Stars & planets', () {
     const theta = 52.25;
     test('Ordinary case', () {
       riseset(12.266666666666667, 14.566666666666666, theta,
@@ -47,16 +47,79 @@ void main() {
       }
     ];
 
+    // for (var c in cases) {
+    //   final djd = c['djd'];
+    //   final rs = RiseSetSun(djd, c['lat'], c['lng']);
+    //   test('Rise on ${djd}', () {
+    //     expect(rs.sunRise.utc, closeTo(c['gmtr'], 1e-3));
+    //     expect(rs.sunRise.azimuth, closeTo(c['azr'], 1e-2));
+    //   });
+    //   test('Set on ${djd}', () {
+    //     expect(rs.sunSet.utc, closeTo(c['gmts'], 1e-3));
+    //     expect(rs.sunSet.azimuth, closeTo(c['azs'], 1e-2));
+    //   });
+    // }
+
     for (var c in cases) {
       final djd = c['djd'];
       final rs = RiseSetSun(djd, c['lat'], c['lng']);
       test('Rise on ${djd}', () {
-        expect(rs.sunRise.utc, closeTo(c['gmtr'], 1e-3));
-        expect(rs.sunRise.azimuth, closeTo(c['azr'], 1e-2));
+        expect(rs.riseEvent.utc, closeTo(c['gmtr'], 1e-3));
+        expect(rs.riseEvent.azimuth, closeTo(c['azr'], 1e-2));
       });
       test('Set on ${djd}', () {
-        expect(rs.sunSet.utc, closeTo(c['gmts'], 1e-3));
-        expect(rs.sunSet.azimuth, closeTo(c['azs'], 1e-2));
+        expect(rs.setEvent.utc, closeTo(c['gmts'], 1e-3));
+        expect(rs.setEvent.azimuth, closeTo(c['azs'], 1e-2));
+      });
+    }
+  });
+
+  group('Moon', () {
+    const cases = [
+      {
+        'djd': 30686.5, //  1984 Jan 7
+        'lng': 0.0,
+        'lat': 30.0,
+        'gmtr': 9.966666666666667,
+        'gmts': 21.15,
+        'azr': 107.733876469,
+        'azs': 254.566206282,
+        'msg': '1984 Jan 7'
+      },
+      {
+        'djd': 30690.5, //  1984 Jan 11
+        'lng': 0.0,
+        'lat': 30.0,
+        'gmtr': 11.916666666666666,
+        'gmts': 0.7333333333333333,
+        'azr': 84.9133813111,
+        'azs': 278.004394375,
+        'msg': '1984 Jan 11'
+      },
+    ];
+
+    const errorInMinutes = 2.0;
+
+    final timeDiff = (a, b) {
+      var x = (a - b).abs();
+      return x > 12 ? 24 - x : x;
+    };
+
+    for (var c in cases) {
+      final rs = RiseSetMoon(c['djd'], c['lat'], c['lng']);
+      test('UTC rise on ${c['msg']}', () {
+        final delta = timeDiff(rs.riseEvent.utc, c['gmtr']) * 60;
+        expect(delta, lessThan(errorInMinutes));
+      });
+      test('UTC Set on ${c['msg']}', () {
+        final delta = timeDiff(rs.setEvent.utc, c['gmts']) * 60;
+        expect(delta, lessThan(errorInMinutes));
+      });
+      test('Azimuth Rise on ${c['msg']}', () {
+        expect(rs.riseEvent.azimuth, closeTo(c['azr'], 1.0));
+      });
+      test('Azimuth Set on ${c['msg']}', () {
+        expect(rs.setEvent.azimuth, closeTo(c['azs'], 1.0));
       });
     }
   });
