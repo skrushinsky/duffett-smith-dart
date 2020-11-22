@@ -47,19 +47,6 @@ void main() {
       }
     ];
 
-    // for (var c in cases) {
-    //   final djd = c['djd'];
-    //   final rs = RiseSetSun(djd, c['lat'], c['lng']);
-    //   test('Rise on ${djd}', () {
-    //     expect(rs.sunRise.utc, closeTo(c['gmtr'], 1e-3));
-    //     expect(rs.sunRise.azimuth, closeTo(c['azr'], 1e-2));
-    //   });
-    //   test('Set on ${djd}', () {
-    //     expect(rs.sunSet.utc, closeTo(c['gmts'], 1e-3));
-    //     expect(rs.sunSet.azimuth, closeTo(c['azs'], 1e-2));
-    //   });
-    // }
-
     for (var c in cases) {
       final djd = c['djd'];
       final rs = RiseSetSun(djd, c['lat'], c['lng']);
@@ -107,11 +94,11 @@ void main() {
 
     for (var c in cases) {
       final rs = RiseSetMoon(c['djd'], c['lat'], c['lng']);
-      test('UTC rise on ${c['msg']}', () {
+      test('UTC rise on ${c['msg']}, error < 2m', () {
         final delta = timeDiff(rs.riseEvent.utc, c['gmtr']) * 60;
         expect(delta, lessThan(errorInMinutes));
       });
-      test('UTC Set on ${c['msg']}', () {
+      test('UTC Set on ${c['msg']}, error < 2m', () {
         final delta = timeDiff(rs.setEvent.utc, c['gmts']) * 60;
         expect(delta, lessThan(errorInMinutes));
       });
@@ -122,5 +109,17 @@ void main() {
         expect(rs.setEvent.azimuth, closeTo(c['azs'], 1.0));
       });
     }
+
+    test('Never rises', () {
+      final rs = RiseSetMoon(30735.5, 66.0, 0.0);
+      expect(
+          () => rs.riseEvent.utc, throwsA(TypeMatcher<NeverRisesException>()));
+    });
+
+    test('Circumpolar', () {
+      final rs = RiseSetMoon(30778.5, 66.0, 0.0);
+      expect(
+          () => rs.riseEvent.utc, throwsA(TypeMatcher<CircumpolarException>()));
+    });
   });
 }
