@@ -190,6 +190,7 @@ abstract class RiseSet {
 }
 
 /// Rise / Set of the Moon
+/// The result is exact within about 2 minutes.
 class RiseSetMoon extends RiseSet {
   double _hp; // horizontal parallax
 
