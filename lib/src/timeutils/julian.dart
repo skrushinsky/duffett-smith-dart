@@ -53,7 +53,7 @@ import '../mathutils.dart';
 const gregorianYear = 1582;
 
 const DJD_TO_JD = 2415020;
-const DJD_TO_MJD = 2400000.5;
+const JD_TO_MJD = 2400000.5;
 const DAYS_PER_CENT = 36525;
 
 class CalendarException implements Exception {
