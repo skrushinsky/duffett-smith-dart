@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:duffett_smith/mathutils.dart';
 import 'package:duffett_smith/misc.dart';
+import 'package:duffett_smith/src/ephemeris/planets.dart';
 import 'package:duffett_smith/timeutils.dart';
 import 'package:duffett_smith/riseset.dart';
 
@@ -12,13 +13,13 @@ String getUsage(parser) {
   return '''
 Rise and set of Sun, Moon and the 8 planets.
 
-riseset [OPTIONS] [DATETIME] [PLACE] 
+riseset [OPTIONS] [DATETIME] [PLACE]
 
 OPTIONS
 
 ${parser.usage}
 
-DATETIME format is a subset of ISO 8601 which includes the subset accepted by 
+DATETIME format is a subset of ISO 8601 which includes the subset accepted by
 RFC 3339, e.g.:
 
 "2012-02-27 13:27:00"
@@ -31,6 +32,17 @@ RFC 3339, e.g.:
 
 The date must be in range from 271821-04-20 BC to 275760-09-13 AD
 If omitted, current date and time will be used.
+
+PLACE is a pair of geographic coordinates, space or comma separated, in any
+order e.g.:
+
+"40N43 73W59"  New-York
+"40N43,73W59"
+"40n43 73w59"
+"73W59 40N43"
+
+"55N45,37E58"  Moscow
+"037e35 55n45"
 
 Example:
 riseset --datetime="1965-02-01 11:46" --place="55N45 37E35"
@@ -72,11 +84,28 @@ void main(List<String> arguments) {
       geoLat = lat;
       geoLon = lon;
     });
-    print('Lat.: ${geoLat}');
-    print('Lon.: ${geoLon}');
+    print('Lat.: $geoLat');
+    print('Lon.: $geoLon');
 
     final hm = ddd(utc.hour, utc.minute, utc.second.toDouble());
     final djd = julDay(utc.year, utc.month, utc.day + hm / 24);
+    var rs;
+    PlanetId.values.forEach((id) {
+      switch (id) {
+        case PlanetId.Sun:
+          rs = RiseSetSun(djd, geoLat, geoLon);
+          break;
+        case PlanetId.Moon:
+          rs = RiseSetMoon(djd, geoLat, geoLon);
+          break;
+        case PlanetId.LunarNode:
+          // skip Lunar Node
+          break;
+        default:
+          rs = RiseSetPlanet(id, djd, geoLat, geoLon);
+        // planets
+      }
+    });
   } catch (e) {
     print(e);
     exitCode = 1;

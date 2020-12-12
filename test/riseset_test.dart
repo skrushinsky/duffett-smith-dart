@@ -1,10 +1,11 @@
+import 'package:duffett_smith/src/ephemeris/planets.dart';
 import 'package:test/test.dart';
 import 'package:duffett_smith/riseset.dart';
 
 const delta = 1e-4;
 
 void main() {
-  group('Stars & planets', () {
+  group('Stars & planets, low-level', () {
     const theta = 52.25;
     test('Ordinary case', () {
       riseset(12.266666666666667, 14.566666666666666, theta,
@@ -120,6 +121,19 @@ void main() {
       final rs = RiseSetMoon(30778.5, 66.0, 0.0);
       expect(
           () => rs.riseEvent.utc, throwsA(TypeMatcher<CircumpolarException>()));
+    });
+  });
+
+  group('Planets', () {
+    final djd = 44175.37500000;
+    final rs = RiseSetPlanet(PlanetId.Venus, djd, 55.75, -37.62);
+    test('Rise on ${djd}', () {
+      expect(rs.riseEvent.utc, closeTo(3.4, 1e-1));
+      // expect(rs.riseEvent.azimuth, closeTo(c['azr'], 1e-2));
+    });
+    test('Set on ${djd}', () {
+      expect(rs.setEvent.utc, closeTo(11.8, 1e-1));
+      // expect(rs.setEvent.azimuth, closeTo(c['azs'], 1e-2));
     });
   });
 }

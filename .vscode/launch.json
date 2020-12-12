@@ -1,11 +1,13 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
-            "name": "Dart: Run current file",
+            "name": "Dart: riseset",
             "type": "dart",
             "request": "launch",
-            "program": "${file}"
+            "program": "${workspaceFolder}/examples/riseset.dart",
+            "args": ["--place=55N45 37E35"],
         },
         {
             "name": "Dart: Run all Tests",

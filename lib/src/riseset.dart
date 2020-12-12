@@ -26,7 +26,11 @@ const STD_REFRACTION = 34.0 / 60;
 abstract class RiseSetException implements Exception {
   final String message;
   const RiseSetException(this.message);
+
   String errMsg() => message;
+
+  @override
+  String toString() => message;
 }
 
 /// Routine can't cope
@@ -65,7 +69,7 @@ class RSEvent {
 /// whose right ascension and declination are known.
 ///
 /// [alpha] is right ascension in hours, [delta] is declination in arc-degrees,
-/// [phi] is geographical latiude in arc-degrees. Optional [displacment] is
+/// [phi] is geographical latiude in arc-degrees. Optional [displacement] is
 /// vertical displacement in arc-degrees, [ALT_STD] by default.
 ///
 /// Caller receives results via [callback] function, which is called with
@@ -252,5 +256,33 @@ class RiseSetSun extends RiseSet {
         _setEvent = RSEvent(_lst2utc(lsts, dj), azs);
       });
     });
+  }
+}
+
+class RiseSetPlanet extends RiseSet {
+  final PlanetId planetId;
+  Ephemeris ephemeris;
+
+  RiseSetPlanet(this.planetId, djd, phi, lng, {this.ephemeris})
+      : assert(ephemeris == null || ephemeris.apparent,
+            'Apparent ephemeris expected!'),
+        super(djd, phi, lng);
+
+  @override
+  void _apparentPosition(
+      double dj, double dpsi, Function(double, double, double) callback) {
+    ephemeris ??= Ephemeris(_djd, apparent: true);
+    final pos = ephemeris.geocentricPosition(planetId);
+    callback(pos.lambda, pos.beta, pos.delta);
+  }
+
+  @override
+  double _getDisplacement() {
+    return ALT_STD;
+  }
+
+  @override
+  void _refineResult(double dj) {
+    // Not required for the planets
   }
 }

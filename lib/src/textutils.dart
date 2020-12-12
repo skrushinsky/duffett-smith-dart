@@ -9,6 +9,8 @@ class GeoFormatException implements Exception {
   final String message;
   const GeoFormatException(this.message);
   String errMsg() => message;
+  @override
+  String toString() => message;
 }
 
 double transformCoords(String s) {
@@ -25,7 +27,7 @@ double transformCoords(String s) {
 void parseGeoCoords(String s, Function(double, double) callback) {
   final vals = s.split(RegExp(r'\s+|\s*,\s*'));
   if (vals.length != 2) {
-    throw GeoFormatException('Unsupported geo-coordinates format:: ${s}');
+    throw GeoFormatException('Unsupported geo-coordinates format: ${s}');
   }
   var lat, lon;
   if (latRe.hasMatch(vals[0]) && lonRe.hasMatch(vals[1])) {
