@@ -107,7 +107,7 @@ void main() {
     }
   });
 
-  group('Sexadecimalal', () {
+  group('Sexadecimalal --> Decimal', () {
     test('Positive, 3 values',
         () => expect(ddd(37, 35, 0), closeTo(37.5833333, DELTA)));
     test('Positive, 2 values',
@@ -117,6 +117,53 @@ void main() {
         () => expect(ddd(-37, 35), closeTo(-37.5833333, DELTA)));
     test('Negative minutes',
         () => expect(ddd(0, -35), closeTo(-0.5833333, DELTA)));
+  });
+
+  group('Decimal --> Sexadecimal', () {
+    dms(55.75833333333333, (d, m, s) {
+      test('Positive, degrees', () => expect(d, equals(55)));
+      test('Positive, minutes', () => expect(m, equals(45)));
+      test('Positive, seconds', () => expect(s, closeTo(30.0, DELTA)));
+    });
+    dms(-55.75833333333333, (d, m, s) {
+      test('Negative, degrees', () => expect(d, equals(-55)));
+      test('Negative, minutes', () => expect(m, equals(45)));
+      test('Negative, seconds', () => expect(s, closeTo(30.0, DELTA)));
+    });
+    dms(-0.75833333333333, (d, m, s) {
+      test('Negative, zero degrees', () => expect(d, equals(0)));
+      test('Negative minutes', () => expect(m, equals(-45)));
+    });
+  });
+
+  group('DMS class', () {
+    group('Positive', () {
+      final dms = DMS.fromDecimal(55.75833333333333);
+      test('Degrees', () => expect(dms.d, equals(55)));
+      test('Minutes', () => expect(dms.m, equals(45)));
+      test('Seconds', () => expect(dms.s, closeTo(30.0, DELTA)));
+    });
+
+    group('Negative degrees', () {
+      final dms = DMS.fromDecimal(-55.75833333333333);
+      test('Degrees', () => expect(dms.d, equals(-55)));
+      test('Minutes', () => expect(dms.m, equals(45)));
+      test('Seconds', () => expect(dms.s, closeTo(30.0, DELTA)));
+    });
+
+    group('Negative minutes', () {
+      final dms = DMS.fromDecimal(-0.75833333333333);
+      test('Degrees', () => expect(dms.d, equals(0)));
+      test('Minutes', () => expect(dms.m, equals(-45)));
+      test('Seconds', () => expect(dms.s, closeTo(30.0, DELTA)));
+    });
+
+    group('Negative seconds', () {
+      final dms = DMS.fromDecimal(-0.008333333333333333);
+      test('Degrees', () => expect(dms.d, equals(0)));
+      test('Minutes', () => expect(dms.m, equals(0)));
+      test('Seconds', () => expect(dms.s, closeTo(-30.0, DELTA)));
+    });
   });
 
   group('Arcs', () {

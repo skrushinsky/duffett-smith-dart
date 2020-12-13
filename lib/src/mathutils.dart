@@ -54,6 +54,29 @@ double ddd(int d, int m, [double s = 0]) {
   return (d.abs() + (m.abs() + s.abs() / 60.0) / 60.0) * sgn;
 }
 
+void dms(double x, Function(int, int, double) callback) {
+  var d, m, s;
+  modf(x.abs(), (f, i) {
+    d = i;
+    modf(f * 60, (f, i) {
+      m = i;
+      modf(f * 60, (f, i) {
+        s = i + f;
+        if (x < 0) {
+          if (d != 0) {
+            d = -d;
+          } else if (m != 0) {
+            m = -m;
+          } else {
+            s = -s;
+          }
+        }
+        callback(d, m, s);
+      });
+    });
+  });
+}
+
 /// Calculate shortest arc in dergees between [a] and [b].
 double shortestArc(double a, double b) {
   final x = (a - b).abs();

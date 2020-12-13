@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'package:args/args.dart';
+import 'package:intl/intl.dart';
+import 'package:sprintf/sprintf.dart';
 import 'package:duffett_smith/mathutils.dart';
 import 'package:duffett_smith/misc.dart';
+import 'package:duffett_smith/src/ephemeris.dart';
 import 'package:duffett_smith/src/ephemeris/planets.dart';
 import 'package:duffett_smith/timeutils.dart';
 import 'package:duffett_smith/riseset.dart';
 
+final timeFormat = DateFormat.Hms();
 double geoLat;
 double geoLon;
 
@@ -50,6 +54,12 @@ riseset --datetime="1965-02-01 11:46" --place="55N45 37E35"
 ''';
 }
 
+DateTime buildEventDate(int year, int month, int day, double hours) {
+  final hms = DMS.fromDecimal(hours);
+  return DateTime.utc(year, month, day, hms.d, hms.m, hms.s.truncate())
+      .toLocal();
+}
+
 void main(List<String> arguments) {
   exitCode = 0;
   final parser = ArgParser()
@@ -78,7 +88,7 @@ void main(List<String> arguments) {
     if (!utc.isUtc) {
       utc = utc.toUtc();
     }
-    print('UTC: ${utc.toString()}');
+    print('UTC: ${timeFormat.format(utc)}');
 
     parseGeoCoords(argResults['place'], (lat, lon) {
       geoLat = lat;
@@ -89,22 +99,37 @@ void main(List<String> arguments) {
 
     final hm = ddd(utc.hour, utc.minute, utc.second.toDouble());
     final djd = julDay(utc.year, utc.month, utc.day + hm / 24);
-    var rs;
+    final eph = Ephemeris(djd, apparent: true);
+
+    RiseSet rs;
+    var name;
     PlanetId.values.forEach((id) {
       switch (id) {
         case PlanetId.Sun:
+          name = 'Sun';
           rs = RiseSetSun(djd, geoLat, geoLon);
           break;
         case PlanetId.Moon:
+          name = 'Moon';
           rs = RiseSetMoon(djd, geoLat, geoLon);
           break;
         case PlanetId.LunarNode:
           // skip Lunar Node
           break;
         default:
-          rs = RiseSetPlanet(id, djd, geoLat, geoLon);
-        // planets
+          // planets
+          name = Planet(id).toString();
+          rs = RiseSetPlanet(id, djd, geoLat, geoLon, ephemeris: eph);
       }
+
+      // final sName = name.padRight(8);
+      final r = buildEventDate(utc.year, utc.month, utc.day, rs.riseEvent.utc);
+      final s = buildEventDate(utc.year, utc.month, utc.day, rs.setEvent.utc);
+
+      print(sprintf(
+          '%-8s %s %s', [name, timeFormat.format(r), timeFormat.format(s)]));
+
+      //print(sprintf())
     });
   } catch (e) {
     print(e);
