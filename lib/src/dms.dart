@@ -35,6 +35,9 @@ class DMS {
 
   /// Arc-seconds
   double get s => _s;
+
+  /// Convert to decimal
+  double toDecimal() => ddd(_d, _m, _s);
 }
 
 String formatHMS(DMS dms) {
