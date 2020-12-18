@@ -7,7 +7,7 @@
             "type": "dart",
             "request": "launch",
             "program": "${workspaceFolder}/examples/riseset.dart",
-            "args": ["--place=55N45 37E35"],
+            "args": ["--place=56N27 37E12"],
         },
         {
             "name": "Dart: Run all Tests",

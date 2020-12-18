@@ -9,9 +9,21 @@ import 'package:duffett_smith/src/ephemeris/planets.dart';
 import 'package:duffett_smith/timeutils.dart';
 import 'package:duffett_smith/riseset.dart';
 
-final timeFormat = DateFormat.Hms();
-double geoLat;
-double geoLon;
+const bodies = [
+  PlanetId.Sun,
+  PlanetId.Moon,
+  PlanetId.Mercury,
+  PlanetId.Venus,
+  PlanetId.Mars,
+  PlanetId.Jupiter,
+  PlanetId.Saturn,
+  PlanetId.Uranus,
+  PlanetId.Neptune,
+  PlanetId.Pluto
+];
+
+DMS geoLat;
+DMS geoLon;
 
 String getUsage(parser) {
   return '''
@@ -78,24 +90,28 @@ void main(List<String> arguments) {
         help: 'Geographical coordinates, Greenwich by default');
 
   try {
+    final dateTimeFormat = DateFormat("y MMM dd',' HH:mm 'UTC'");
+    final timeFormat = DateFormat('HH:mm:ss');
+
     final argResults = parser.parse(arguments);
     if (argResults['help']) {
       print(getUsage(parser));
       exit(exitCode);
     }
-
+    print('');
     var utc = DateTime.parse(argResults['time']);
     if (!utc.isUtc) {
       utc = utc.toUtc();
     }
-    print('UTC: ${timeFormat.format(utc)}');
+    print(dateTimeFormat.format(utc));
 
     parseGeoCoords(argResults['place'], (lat, lon) {
       geoLat = lat;
       geoLon = lon;
+      print('${formatGeoLat(geoLat)}, ${formatGeoLon(geoLon)}');
     });
-    print('Lat.: $geoLat');
-    print('Lon.: $geoLon');
+
+    print('');
 
     final hm = ddd(utc.hour, utc.minute, utc.second.toDouble());
     final djd = julDay(utc.year, utc.month, utc.day + hm / 24);
@@ -103,31 +119,38 @@ void main(List<String> arguments) {
 
     RiseSet rs;
     var name;
-    PlanetId.values.forEach((id) {
+    final la = geoLat.toDecimal();
+    final lo = geoLon.toDecimal();
+    print('             Rise (time, az.)      Set (time, az.)       ');
+    //print('             HH:MM:SS   Az.        HH:MM:SS   Az.      ');
+    print('_' * 54);
+    print('');
+    bodies.forEach((id) {
       switch (id) {
         case PlanetId.Sun:
           name = 'Sun';
-          rs = RiseSetSun(djd, geoLat, geoLon);
+          rs = RiseSetSun(djd, la, lo);
           break;
         case PlanetId.Moon:
           name = 'Moon';
-          rs = RiseSetMoon(djd, geoLat, geoLon);
-          break;
-        case PlanetId.LunarNode:
-          // skip Lunar Node
+          rs = RiseSetMoon(djd, la, lo);
           break;
         default:
           // planets
           name = Planet(id).toString();
-          rs = RiseSetPlanet(id, djd, geoLat, geoLon, ephemeris: eph);
+          rs = RiseSetPlanet(id, djd, la, lo, ephemeris: eph);
+          break;
       }
-
       // final sName = name.padRight(8);
       final r = buildEventDate(utc.year, utc.month, utc.day, rs.riseEvent.utc);
       final s = buildEventDate(utc.year, utc.month, utc.day, rs.setEvent.utc);
-
-      print(sprintf(
-          '%-8s %s %s', [name, timeFormat.format(r), timeFormat.format(s)]));
+      print(sprintf('%-8s  |  %s   %s  |  %s   %s   ', [
+        name,
+        timeFormat.format(r),
+        format360(DMS.fromDecimal(rs.riseEvent.azimuth)),
+        timeFormat.format(s),
+        format360(DMS.fromDecimal(rs.setEvent.azimuth))
+      ]));
 
       //print(sprintf())
     });

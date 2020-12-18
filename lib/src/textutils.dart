@@ -1,4 +1,5 @@
 import 'package:duffett_smith/mathutils.dart';
+import 'package:sprintf/sprintf.dart';
 
 final latRe = RegExp(r'^\d+[NS]\d+$', caseSensitive: false);
 final lonRe = RegExp(r'^\d+[WE]\d+$', caseSensitive: false);
@@ -13,18 +14,22 @@ class GeoFormatException implements Exception {
   String toString() => message;
 }
 
-double transformCoords(String s) {
+DMS transformCoords(String s) {
   final match = captureRe.firstMatch(s);
-  final d = int.parse(match.group(1));
-  final m = int.parse(match.group(3));
-  var x = ddd(d, m);
-  if (['S', 's', 'E', 'e'].contains(match.group(2))) {
-    x = -x;
+  var d = int.parse(match.group(1));
+  var m = int.parse(match.group(3));
+  final p = match.group(2).toUpperCase();
+  if (p == 'S' || p == 'E') {
+    if (d != 0) {
+      d = -d;
+    } else if (m != 0) {
+      m = -m;
+    }
   }
-  return x;
+  return DMS(d, m, 0);
 }
 
-void parseGeoCoords(String s, Function(double, double) callback) {
+void parseGeoCoords(String s, Function(DMS, DMS) callback) {
   final vals = s.split(RegExp(r'\s+|\s*,\s*'));
   if (vals.length != 2) {
     throw GeoFormatException('Unsupported geo-coordinates format: ${s}');
@@ -41,3 +46,17 @@ void parseGeoCoords(String s, Function(double, double) callback) {
   }
   callback(lat, lon);
 }
+
+String formatGeoLat(DMS dms) => sprintf('%02d%s%02d', [
+      dms.d.abs(),
+      dms.d < 0 || dms.m < 0 || dms.s < 0 ? 'S' : 'N',
+      dms.m.abs()
+    ]);
+
+String formatGeoLon(DMS dms) => sprintf('%03d%s%02d', [
+      dms.d.abs(),
+      dms.d < 0 || dms.m < 0 || dms.s < 0 ? 'E' : 'W',
+      dms.m.abs()
+    ]);
+
+String format360(DMS dms) => sprintf('%03d:%02d', [dms.d, dms.m]);
