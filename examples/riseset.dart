@@ -35,30 +35,39 @@ Rise and set of celestial objects.
 
 riseset [OPTIONS] [DATE] [PLACE]
 
-OPTIONS
-
 ${parser.usage}
 
-DATE format is "YYYY-MM-DD, e.g: "2012-02-27"
+Example:
+riseset --object=MO --date="1965-02-01" --geo=55N45,37E35 --theme=dark
 
-The date must be in range from 1 AD to 275760-09-13 AD
-If omitted, current date and time will be used.
+''';
+}
 
-PLACE is a pair of geographic coordinates, space or comma separated, in any
-order e.g.:
+String describeDateFormat() {
+  return '''
 
-"40N43 73W59"  New-York
-"40N43,73W59"
+DATE format is "YYYY-MM-DD, e.g: "2012-02-27". 
+The date must be in range from 1 AD to 275760-09-13 AD.
+''';
+}
+
+String describeGeoFormat() {
+  return '''
+
+PLACE is represented by a pair of geographic coordinates, 
+space or comma separated, in any order e.g.:
+
+40N43,73W59
+"40N43, 73W59"
+"40N43 73W59"
 "40n43 73w59"
-"73W59 40N43"
+"73W59 40n43"
 
 "55N45,37E58"  Moscow
 "037e35 55n45"
 
-Example:
-riseset --date="1965-02-01" --place=55N45,37E35
-
-''';
+Please, note: space-separated coordinates must be surrounded by double quotes.
+  ''';
 }
 
 DateTime buildEventDate(int year, int month, int day, double hours) {
@@ -88,14 +97,12 @@ void main(List<String> arguments) {
         negatable: false,
         defaultsTo: false,
         help: 'Displays this help information')
-    ..addOption('date',
-        abbr: 'd',
-        defaultsTo: '',
-        help: 'Date and time, current local date by default')
-    ..addOption('place',
-        abbr: 'p',
-        defaultsTo: '51N28,0W0',
-        help: 'Geographical coordinates, Greenwich by default')
+    ..addFlag('help-date',
+        negatable: false, defaultsTo: false, help: 'Describe date format')
+    ..addFlag('help-geo',
+        negatable: false,
+        defaultsTo: false,
+        help: 'Describe geo-coordinates format')
     ..addOption('object',
         abbr: 'o',
         allowed: ['SU', 'MO', 'VE', 'ME', 'MA', 'JU', 'SA', 'UR', 'NE', 'PL'],
@@ -113,10 +120,14 @@ void main(List<String> arguments) {
           'NE': 'Neptune',
           'PL': 'Pluto'
         })
+    ..addOption('date',
+        abbr: 'd', defaultsTo: 'current local date', help: 'Date')
+    ..addOption('geo',
+        abbr: 'p', defaultsTo: 'Greenwich', help: 'Geographical coordinates')
     ..addOption('theme',
         allowed: ['dark', 'light', 'disabled'],
         defaultsTo: 'disabled',
-        help: 'Celestial body',
+        help: 'Color theme',
         allowedHelp: {
           'dark': 'light colors on dark background',
           'light': 'dark colors on white background',
@@ -127,6 +138,14 @@ void main(List<String> arguments) {
     final argResults = parser.parse(arguments);
     if (argResults['help']) {
       print(getUsage(parser));
+      exit(exitCode);
+    }
+    if (argResults['help-date']) {
+      print(describeDateFormat());
+      exit(exitCode);
+    }
+    if (argResults['help-geo']) {
+      print(describeGeoFormat());
       exit(exitCode);
     }
 
@@ -140,13 +159,15 @@ void main(List<String> arguments) {
     }
 
     print('');
-    final date = argResults['date'] != ''
+    final date = argResults['date'] != 'current local date'
         ? DateTime.parse(argResults['date']).toLocal()
         : DateTime.now();
     final timeZone = date.timeZoneName;
     displayTitleAndData(theme, 'Date', dateFormat.format(date));
 
-    parseGeoCoords(argResults['place'], (lat, lon) {
+    final geo =
+        argResults['geo'] == 'Greenwich' ? '51N28,0W0' : argResults['geo'];
+    parseGeoCoords(geo, (lat, lon) {
       geoLat = lat;
       geoLon = lon;
       displayTitleAndData(
