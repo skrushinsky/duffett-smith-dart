@@ -23,6 +23,9 @@ const bodies = {
   'PL': PlanetId.Pluto
 };
 
+final dateFormat = DateFormat('yyyy MMM dd');
+final timeFormat = DateFormat('HH:mm');
+
 DMS geoLat;
 DMS geoLon;
 
@@ -30,24 +33,15 @@ String getUsage(parser) {
   return '''
 Rise and set of celestial objects.
 
-riseset [OPTIONS] [DATETIME] [PLACE]
+riseset [OPTIONS] [DATE] [PLACE]
 
 OPTIONS
 
 ${parser.usage}
 
-DATETIME format is a subset of ISO 8601 which includes the subset accepted by
-RFC 3339, e.g.:
+DATE format is "YYYY-MM-DD, e.g: "2012-02-27"
 
-"2012-02-27 13:27:00"
-"2012-02-27T13:27:00"         same as the above
-"2012-02-27"                  midnight
-"2012-02-27T13:27:00Z"        UTC+0
-"2002-02-27T14:00:00-0500"    UTC-5h time zone
-"2002-02-27T14:00:00 -05:00"  same as the above
-"-123450101 00:00:00 Z"       in the year -12345.
-
-The date must be in range from 271821-04-20 BC to 275760-09-13 AD
+The date must be in range from 1 AD to 275760-09-13 AD
 If omitted, current date and time will be used.
 
 PLACE is a pair of geographic coordinates, space or comma separated, in any
@@ -62,7 +56,7 @@ order e.g.:
 "037e35 55n45"
 
 Example:
-riseset --  time="1965-02-01 11:46" --place="55N45 37E35"
+riseset --date="1965-02-01" --place=55N45,37E35
 
 ''';
 }
@@ -94,10 +88,10 @@ void main(List<String> arguments) {
         negatable: false,
         defaultsTo: false,
         help: 'Displays this help information')
-    ..addOption('time',
-        abbr: 't',
-        defaultsTo: DateTime.now().toIso8601String(),
-        help: 'Date and time, current moment by default')
+    ..addOption('date',
+        abbr: 'd',
+        defaultsTo: '',
+        help: 'Date and time, current local date by default')
     ..addOption('place',
         abbr: 'p',
         defaultsTo: '51N28,0W0',
@@ -130,9 +124,6 @@ void main(List<String> arguments) {
         });
 
   try {
-    final dateTimeFormat = DateFormat('y MMM dd');
-    final timeFormat = DateFormat('HH:mm');
-
     final argResults = parser.parse(arguments);
     if (argResults['help']) {
       print(getUsage(parser));
@@ -149,14 +140,11 @@ void main(List<String> arguments) {
     }
 
     print('');
-    var utc = DateTime.parse(argResults['time']);
-    if (!utc.isUtc) {
-      utc = utc.toUtc();
-    }
-    //displayData('UTC', dateTimeFormat.format(utc));
-    final local = utc.toLocal();
-    final timeZone = local.timeZoneName;
-    displayTitleAndData(theme, 'Date', dateTimeFormat.format(local));
+    final date = argResults['date'] != ''
+        ? DateTime.parse(argResults['date']).toLocal()
+        : DateTime.now();
+    final timeZone = date.timeZoneName;
+    displayTitleAndData(theme, 'Date', dateFormat.format(date));
 
     parseGeoCoords(argResults['place'], (lat, lon) {
       geoLat = lat;
@@ -167,8 +155,7 @@ void main(List<String> arguments) {
 
     print('');
 
-    final hm = ddd(utc.hour, utc.minute, utc.second.toDouble());
-    final djd = julDay(utc.year, utc.month, utc.day + hm / 24);
+    final djd = julDay(date.year, date.month, date.day + 0.5);
     final eph = Ephemeris(djd, apparent: true);
 
     RiseSet rs;
@@ -196,10 +183,13 @@ void main(List<String> arguments) {
       displayHeader(theme, '$name $title');
       try {
         final evt = title == 'Rise' ? rs.riseEvent : rs.setEvent;
-        final d = buildEventDate(utc.year, utc.month, utc.day, evt.utc);
-        displayTitleAndData(theme, 'Time', '${timeFormat.format(d)} $timeZone');
-        displayTitleAndData(
-            theme, 'Azimuth', format360(DMS.fromDecimal(evt.azimuth)));
+        calDay(djd, (ye, mo, da) {
+          final d = buildEventDate(ye, mo, da.truncate(), evt.utc);
+          displayTitleAndData(
+              theme, 'Time', '${timeFormat.format(d)} $timeZone');
+          displayTitleAndData(
+              theme, 'Azimuth', format360(DMS.fromDecimal(evt.azimuth)));
+        });
       } catch (e) {
         displayError(theme, e.toString());
       }
