@@ -11,6 +11,8 @@ dependencies:
   vector_math: any
   sprintf: any
   intl: any
+  ansicolor: any
+
 
 dev_dependencies:
   pedantic: ^1.9.0

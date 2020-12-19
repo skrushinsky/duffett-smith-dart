@@ -3,3 +3,4 @@
 library misc;
 
 export 'src/textutils.dart';
+export 'src/terminal.dart';

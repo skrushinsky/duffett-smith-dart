@@ -60,3 +60,9 @@ String formatGeoLon(DMS dms) => sprintf('%03d%s%02d', [
     ]);
 
 String format360(DMS dms) => sprintf('%03d:%02d', [dms.d, dms.m]);
+
+extension StringExtension on String {
+  String truncateTo(int maxLenght) =>
+      // ignore: unnecessary_this
+      (this.length <= maxLenght) ? this : '${this.substring(0, maxLenght)}...';
+}

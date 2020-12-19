@@ -1,33 +1,34 @@
 import 'dart:io';
 import 'package:args/args.dart';
 import 'package:intl/intl.dart';
+import 'package:ansicolor/ansicolor.dart';
+
 import 'package:sprintf/sprintf.dart';
 import 'package:duffett_smith/mathutils.dart';
-import 'package:duffett_smith/misc.dart';
-import 'package:duffett_smith/src/ephemeris.dart';
-import 'package:duffett_smith/src/ephemeris/planets.dart';
+import 'package:duffett_smith/ephemeris.dart';
 import 'package:duffett_smith/timeutils.dart';
 import 'package:duffett_smith/riseset.dart';
+import 'package:duffett_smith/misc.dart';
 
-const bodies = [
-  PlanetId.Sun,
-  PlanetId.Moon,
-  PlanetId.Mercury,
-  PlanetId.Venus,
-  PlanetId.Mars,
-  PlanetId.Jupiter,
-  PlanetId.Saturn,
-  PlanetId.Uranus,
-  PlanetId.Neptune,
-  PlanetId.Pluto
-];
+const bodies = {
+  'SU': PlanetId.Sun,
+  'MO': PlanetId.Moon,
+  'ME': PlanetId.Mercury,
+  'VE': PlanetId.Venus,
+  'MA': PlanetId.Mars,
+  'JU': PlanetId.Jupiter,
+  'SA': PlanetId.Saturn,
+  'UR': PlanetId.Uranus,
+  'NE': PlanetId.Neptune,
+  'PL': PlanetId.Pluto
+};
 
 DMS geoLat;
 DMS geoLon;
 
 String getUsage(parser) {
   return '''
-Rise and set of Sun, Moon and the 8 planets.
+Rise and set of celestial objects.
 
 riseset [OPTIONS] [DATETIME] [PLACE]
 
@@ -61,7 +62,7 @@ order e.g.:
 "037e35 55n45"
 
 Example:
-riseset --datetime="1965-02-01 11:46" --place="55N45 37E35"
+riseset --  time="1965-02-01 11:46" --place="55N45 37E35"
 
 ''';
 }
@@ -70,6 +71,19 @@ DateTime buildEventDate(int year, int month, int day, double hours) {
   final hms = DMS.fromDecimal(hours);
   return DateTime.utc(year, month, day, hms.d, hms.m, hms.s.truncate())
       .toLocal();
+}
+
+void displayHeader(Theme theme, String text) {
+  print(theme.headingPen(text));
+}
+
+void displayError(Theme theme, String text) {
+  print(theme.errorPen(text));
+}
+
+void displayTitleAndData(Theme theme, String title, String data) {
+  print(theme.titlePen(sprintf('%-10s:', [title])) +
+      theme.dataPen(sprintf(' %s', [data])));
 }
 
 void main(List<String> arguments) {
@@ -86,29 +100,69 @@ void main(List<String> arguments) {
         help: 'Date and time, current moment by default')
     ..addOption('place',
         abbr: 'p',
-        defaultsTo: '51N28 0W0',
-        help: 'Geographical coordinates, Greenwich by default');
+        defaultsTo: '51N28,0W0',
+        help: 'Geographical coordinates, Greenwich by default')
+    ..addOption('object',
+        abbr: 'o',
+        allowed: ['SU', 'MO', 'VE', 'ME', 'MA', 'JU', 'SA', 'UR', 'NE', 'PL'],
+        defaultsTo: 'SU',
+        help: 'Celestial body',
+        allowedHelp: {
+          'SU': 'Sun',
+          'MO': 'Moon',
+          'ME': 'Mercury',
+          'VE': 'Venus',
+          'MA': 'Mars',
+          'JU': 'Jupiter',
+          'SA': 'Saturn',
+          'UR': 'Uranus',
+          'NE': 'Neptune',
+          'PL': 'Pluto'
+        })
+    ..addOption('theme',
+        allowed: ['dark', 'light', 'disabled'],
+        defaultsTo: 'disabled',
+        help: 'Celestial body',
+        allowedHelp: {
+          'dark': 'light colors on dark background',
+          'light': 'dark colors on white background',
+          'disabled': 'disable colors'
+        });
 
   try {
-    final dateTimeFormat = DateFormat("y MMM dd',' HH:mm 'UTC'");
-    final timeFormat = DateFormat('HH:mm:ss');
+    final dateTimeFormat = DateFormat('y MMM dd');
+    final timeFormat = DateFormat('HH:mm');
 
     final argResults = parser.parse(arguments);
     if (argResults['help']) {
       print(getUsage(parser));
       exit(exitCode);
     }
+
+    var theme;
+    if (argResults['theme'] == 'disabled') {
+      ansiColorDisabled = true;
+      theme = Theme.createDefault();
+    } else {
+      ansiColorDisabled = false;
+      theme = Theme.create(argResults['theme']);
+    }
+
     print('');
     var utc = DateTime.parse(argResults['time']);
     if (!utc.isUtc) {
       utc = utc.toUtc();
     }
-    print(dateTimeFormat.format(utc));
+    //displayData('UTC', dateTimeFormat.format(utc));
+    final local = utc.toLocal();
+    final timeZone = local.timeZoneName;
+    displayTitleAndData(theme, 'Date', dateTimeFormat.format(local));
 
     parseGeoCoords(argResults['place'], (lat, lon) {
       geoLat = lat;
       geoLon = lon;
-      print('${formatGeoLat(geoLat)}, ${formatGeoLon(geoLon)}');
+      displayTitleAndData(
+          theme, 'Place', '${formatGeoLat(geoLat)}, ${formatGeoLon(geoLon)}');
     });
 
     print('');
@@ -121,39 +175,39 @@ void main(List<String> arguments) {
     var name;
     final la = geoLat.toDecimal();
     final lo = geoLon.toDecimal();
-    print('             Rise (time, az.)      Set (time, az.)       ');
-    //print('             HH:MM:SS   Az.        HH:MM:SS   Az.      ');
-    print('_' * 54);
-    print('');
-    bodies.forEach((id) {
-      switch (id) {
-        case PlanetId.Sun:
-          name = 'Sun';
-          rs = RiseSetSun(djd, la, lo);
-          break;
-        case PlanetId.Moon:
-          name = 'Moon';
-          rs = RiseSetMoon(djd, la, lo);
-          break;
-        default:
-          // planets
-          name = Planet(id).toString();
-          rs = RiseSetPlanet(id, djd, la, lo, ephemeris: eph);
-          break;
-      }
-      // final sName = name.padRight(8);
-      final r = buildEventDate(utc.year, utc.month, utc.day, rs.riseEvent.utc);
-      final s = buildEventDate(utc.year, utc.month, utc.day, rs.setEvent.utc);
-      print(sprintf('%-8s  |  %s   %s  |  %s   %s   ', [
-        name,
-        timeFormat.format(r),
-        format360(DMS.fromDecimal(rs.riseEvent.azimuth)),
-        timeFormat.format(s),
-        format360(DMS.fromDecimal(rs.setEvent.azimuth))
-      ]));
+    final id = bodies[argResults['object']];
+    switch (id) {
+      case PlanetId.Sun:
+        name = 'Sun';
+        rs = RiseSetSun(djd, la, lo);
+        break;
+      case PlanetId.Moon:
+        name = 'Moon';
+        rs = RiseSetMoon(djd, la, lo);
+        break;
+      default:
+        // planets
+        name = Planet(id).toString();
+        rs = RiseSetPlanet(id, djd, la, lo, ephemeris: eph);
+        break;
+    }
 
-      //print(sprintf())
-    });
+    final displayEvent = (title) {
+      displayHeader(theme, '$name $title');
+      try {
+        final evt = title == 'Rise' ? rs.riseEvent : rs.setEvent;
+        final d = buildEventDate(utc.year, utc.month, utc.day, evt.utc);
+        displayTitleAndData(theme, 'Time', '${timeFormat.format(d)} $timeZone');
+        displayTitleAndData(
+            theme, 'Azimuth', format360(DMS.fromDecimal(evt.azimuth)));
+      } catch (e) {
+        displayError(theme, e.toString());
+      }
+    };
+
+    displayEvent('Rise');
+    print('');
+    displayEvent('Set');
   } catch (e) {
     print(e);
     exitCode = 1;
